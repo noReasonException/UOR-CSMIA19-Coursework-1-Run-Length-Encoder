@@ -3,7 +3,7 @@ from matplotlib import image
 import matplotlib.pyplot as plt
 import numpy as np
 #curr_image = np.array(image.imread("img/1/IC1.png"))
-
+import pickle
 """
 
 
@@ -57,7 +57,6 @@ def inverse_mapper(r_plane,g_plane,b_plane):
     inv_g = np.abs(np.fft.ifft2(np.fft.ifftshift(g_plane))) #Green plane IFFT2
     inv_b = np.abs(np.fft.ifft2(np.fft.ifftshift(b_plane))) #Blue plane IFFT2
 
-
     #Here i added an additional axis in order to be able to concetenate the channels at 3rd
     #axis (the color)
     return np.concatenate((
@@ -88,17 +87,15 @@ def run_length_coding_redundancy_mid(symbols,i,rep=1):
 
     if(i+1<len(symbols)):
         if(symbols[i]==symbols[i+1] and rep<900) : return run_length_coding_redundancy_mid(symbols,i+1,rep+1)
-        else:return (symbols[i],rep)
-    else: return (symbols[i],rep)
+        else:return [symbols[i],rep]
+    else: return [symbols[i],rep]
 
 
 def run_length_coding_encode(channel):
     print("ENCODE")
-
-    print(channel.shape)
     symbols=channel.flatten()
     assert len(symbols)==channel.shape[0]*channel.shape[1]
-    run_length_cod=list()
+    run_length_cod=[]
     run_length_cod.append(channel.shape)
     i=0
     while(i<len(symbols)):
@@ -110,33 +107,46 @@ def run_length_coding_encode(channel):
 
 def run_length_coding_decode(encoded):
     print("DECODE")
-    symbols=list()
+    symbols=[]
     for i in range(len(encoded)-1):
         a=[encoded[i + 1][0]] * (encoded[i + 1][1])
         symbols.extend(a)
 
     return np.array(symbols).reshape(encoded[0])
 
-
+def toBinaryFormat(r_encoded,g_encoded,b_encoded):
+    print(type(r_encoded))
+    return None
 
 def run_length_cod(image):
+
+    #np.ndArrays
     r=image[:,:,0]
     g=image[:,:,1]
     b=image[:, :, 2]
 
-    print("RAW"+str(r.shape)+str(g.shape)+str(b.shape))
+
+
+
+
+    print("RAW- "+str(r.shape)+str(g.shape)+str(b.shape))
 
     r=run_length_coding_encode(r)
     g = run_length_coding_encode(g)
     b = run_length_coding_encode(b)
 
-    print("ENCODED"+str(len(r))+"-"+str(len(r))+"-"+str(len(r)))
+    #list -> should be array
+    toBinaryFormat(r, g, b)
+    print("ENCODED- "+str(len(r))+"-"+str(len(r))+"-"+str(len(r)))
+
+
+
 
     r = run_length_coding_decode(r)
     g = run_length_coding_decode(g)
     b = run_length_coding_decode(b)
 
-    print("decoded"+str(r.shape)+str(g.shape)+str(b.shape))
+    print("DECODED- "+str(r.shape)+str(g.shape)+str(b.shape))
 
     return np.concatenate((
         np.expand_dims(r, axis=2),
@@ -144,7 +154,12 @@ def run_length_cod(image):
         np.expand_dims(b ,axis=2))
         ,axis=2)
 
-original=plt.imread("img/1/IC2.png")
+
+
+
+
+#original=plt.imread("img/1/IC2.png")
+original=plt.imread("IC1-low.jpg")
 a=mapper(original)
 b=inverse_mapper(*a)
 
@@ -159,9 +174,6 @@ dicta={
     "original":a,
     "mapped-inv_mapped":run_length_cod(original)
 }
-print(original)
-#print(run_length_coding_encode(original))
-#print(run_length_coding_decode(run_length_coding_encode(original)))
 
 plot_figures(dicta,1,2)
 plt.show()

@@ -95,24 +95,28 @@ def run_length_coding_encode(channel):
     print("ENCODE")
     symbols=channel.flatten()
     assert len(symbols)==channel.shape[0]*channel.shape[1]
-    run_length_cod=[]
-    run_length_cod.append(channel.shape)
+    run_length_cod=np.ndarray((0,),np.int32)
+    run_length_cod=np.append(run_length_cod,[channel.shape[0],channel.shape[1]])
     i=0
     while(i<len(symbols)):
         curr=run_length_coding_redundancy_mid(symbols,i)
-        run_length_cod.append(curr)
+        run_length_cod=np.append(run_length_cod,[curr[0],curr[1]])
         i=i+curr[1]
-
+    assert run_length_cod.shape[0]%2==0#should always insert in pairs
     return run_length_cod
 
 def run_length_coding_decode(encoded):
+    assert encoded.shape[0] % 2 == 0  # should always insert in pairs
     print("DECODE")
     symbols=[]
-    for i in range(len(encoded)-1):
-        a=[encoded[i + 1][0]] * (encoded[i + 1][1])
-        symbols.extend(a)
+    shape=(encoded[0].astype(np.int32),encoded[1].astype(np.int32))
+    encoded=encoded[2:] #first two contain the shape
 
-    return np.array(symbols).reshape(encoded[0])
+    for i in range(0,len(encoded),2):
+        a=encoded[i + 1].astype(np.int32) * [encoded[i]]
+        symbols.extend(a)
+    return np.array(symbols)\
+        .reshape(shape)
 
 def toBinaryFormat(r_encoded,g_encoded,b_encoded):
     print(type(r_encoded))

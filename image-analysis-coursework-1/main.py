@@ -119,7 +119,7 @@ def run_length_coding_encode(channel):
         if(current_run==0):
             print("WARN")
     #return run_length_cod
-    return np.array(run_length_cod_fast)
+    return np.array(run_length_cod_fast,np.int32)
 
 def run_length_coding_decode(encoded):
     print("DECODE")
@@ -133,35 +133,13 @@ def run_length_coding_decode(encoded):
             continue
         a=curr_step.astype(np.int32) * [encoded[i]]
         symbols.extend(a)
-    return np.array(symbols)\
+    return np.array(symbols,np.int32)\
         .reshape(shape)
 
-def toBinaryFormat(r_encoded,g_encoded,b_encoded):
-    partition_r =   r_encoded.shape[0]
-    partition_g =   g_encoded.shape[0]
-    partition_b =   b_encoded.shape[0]
-
-    meta=np.array((partition_r,partition_g,partition_b))
-    unified=np.ndarray(0)
-    unified=np.concatenate((meta,list(r_encoded),list(g_encoded),list(b_encoded)))
-    serialized = pickle.dumps(unified, protocol=5)  # protocol 0 is printable ASCII
-
-
-    with open("image.raw", "wb") as image:
-        image.write(bytearray(unified))
-
-    with open("image.raw", "rb") as r:
-        deserialized=r.read()
-    """deserialized_unified = pickle.loads(deserialized)
-    deserialized_r,deserialized_g,deserialized_b=\
-        (deserialized_unified[3:deserialized_unified[0]+1],
-         deserialized_unified[deserialized_unified[0]+2:deserialized_unified[1]+1],
-         deserialized_unified[deserialized_unified[1]+2:deserialized_unified[2]+1])"""
-
-    (deserialized_r, deserialized_g, deserialized_b)=(r_encoded,g_encoded,b_encoded)
-    return (deserialized_r,deserialized_g,deserialized_b)
 
 def run_length_cod(image):
+
+
 
     #np.ndArrays
     r=image[:,:,0]
@@ -169,6 +147,13 @@ def run_length_cod(image):
     b=image[:, :, 2]
 
 
+
+
+
+
+    #r = (255*r).astype(np.int32)
+    #g = (255*g).astype(np.int32)
+    #b = (255*b).astype(np.int32)
 
 
 
@@ -195,7 +180,50 @@ def run_length_cod(image):
         ,axis=2)
 
 
+def run_length_cod_single(image):
+    image = (image * 255).astype(np.int32)
+    print("RAW- " + str(image.shape))
 
+    single=collapse_rgb_to_bitmap(image)
+
+
+    print("SINGLE-LAYER- "+str(single.shape))
+
+    single=run_length_coding_encode(single)
+
+    print("ENCODED- "+str(len(single)))
+
+    print(single)
+
+    single = run_length_coding_decode(single).astype(np.int32)
+
+    print("DECODED- "+str(single.shape))
+
+    return expand_bitmap_to_rgb(single)
+
+
+
+def collapse_rgb_to_bitmap(image:np.ndarray):
+    def toSingle(r: int, g: int, b: int) -> int:
+        retval = r + (g << 8 & (pow(2, 8) - 1) << 8) + (b << 16 & (pow(2, 16) - 1) << 16)
+        return retval
+    new_image=np.ndarray((image.shape[0],image.shape[1]),np.int32)
+    for i in range(new_image.shape[0]):
+        for j in range(new_image.shape[1]):
+            new_image[i,j]=toSingle(image[i,j,0],image[i,j,1],image[i,j,2])
+    return new_image
+
+def expand_bitmap_to_rgb(bitmap:np.ndarray):
+    def fromSingle(s: int) -> tuple:
+        return ((pow(2, 8) - 1) & s, ((pow(2, 16) - 1) & (~255) & s) >> 8, ((pow(2, 24) - 1) & (~65535) & s) >> 16)
+    new_image=np.ndarray((bitmap.shape[0],bitmap.shape[1],3),np.int32)
+    for i in range(new_image.shape[0]):
+        for j in range(new_image.shape[1]):
+            r,g,b=fromSingle(bitmap[i,j])
+            new_image[i,j,0]=r
+            new_image[i, j, 1] = g
+            new_image[i, j, 2] = b
+    return new_image
 
 
 original=plt.imread("img/1/IC2.png")
@@ -212,7 +240,7 @@ a=a.reshape(size)
 
 dicta={
     "original":a,
-    "mapped-inv_mapped":run_length_cod(original)
+    "mapped-inv_mapped":run_length_cod_single(original)
 }
 
 plot_figures(dicta,1,2)
